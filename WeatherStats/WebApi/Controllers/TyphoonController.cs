@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using WeatherStats.WebApi.Handlers;
 using WeatherStats.WebApi.Handlers.GetAverageNumberOfTyphoons;
 using WeatherStats.WebApi.Handlers.GetAverageWindStrengthOfTyphoons;
 using WeatherStats.WebApi.Handlers.GetMostCalmDates;
@@ -40,39 +41,39 @@ namespace WeatherStats.WebApi.Controllers
         }
 
         [HttpGet("averagecount")]
-        public Task<GetAverageNumberOfTyphoonsResponse> GetAverageNumberOfTyphoonsAsync([FromQuery]ECalculationMode mode)
+        public CalculationResponse<Dictionary<int, int>?> GetAverageNumberOfTyphoonsAsync([FromQuery] ECalculationMode mode)
         {
-            return _getAverageNumberOfTyphoonsHandler.HandleAsync(mode);
+            return _getAverageNumberOfTyphoonsHandler.Handle(mode);
         }
 
         [HttpGet("averagewindstrength")]
-        public Task<GetAverageWindStrengthOfTyphoonsResponse> GetAverageWindStrengthOfTyphoonsAsunc([FromQuery]ECalculationMode mode)
+        public CalculationResponse<Dictionary<int, double>?> GetAverageWindStrengthOfTyphoonsAsunc([FromQuery] ECalculationMode mode)
         {
-            return _getAverageWindStrengthOfTyphoonsHandler.HandleAsync(mode);
+            return _getAverageWindStrengthOfTyphoonsHandler.Handle(mode);
         }
 
         [HttpGet("mostcalmdates")]
-        public Task<GetMostCalmDatesResponse> GetMostCalmDatesAsync([FromQuery]ECalculationMode mode)
+        public CalculationResponse<List<DateTime>?> GetMostCalmDatesAsync([FromQuery] ECalculationMode mode)
         {
-            return _getMostCalmDatesHandler.HandleAsync(mode);
+            return _getMostCalmDatesHandler.Handle(mode);
         }
 
         [HttpGet("winddirections")]
-        public Task<GetMostFrequentWindDirectionsResponse> GetMostFrequentWindDirectionsAsync([FromQuery]ECalculationMode mode)
+        public CalculationResponse<Dictionary<string, int>?> GetMostFrequentWindDirectionsAsync([FromQuery] ECalculationMode mode)
         {
-            return _getMostFrequentWindDirectionsHandler.HandleAsync(mode);
+            return _getMostFrequentWindDirectionsHandler.Handle(mode);
         }
 
         [HttpGet("winddirections/strongest")]
-        public Task<GetMostFrequestWindDirectionOfStrongestTyphoonsResponse> GetMostFrequestWindDirectionOfStrongestTyphoonsAsync([FromQuery]ECalculationMode mode)
+        public CalculationResponse<Dictionary<string, int>?> GetMostFrequestWindDirectionOfStrongestTyphoonsAsync([FromQuery] ECalculationMode mode)
         {
-            return _getMostFrequestWindDirectionOfStrongestTyphoonsHandler.HandleAsync(mode);
+            return _getMostFrequestWindDirectionOfStrongestTyphoonsHandler.Handle(mode);
         }
 
         [HttpGet("strongest")]
-        public Task<GetStrongestTyphoonResponse> GetStrongestTyphoonAsync([FromQuery]ECalculationMode mode)
+        public CalculationResponse<List<Typhoon>?> GetStrongestTyphoonAsync([FromQuery] ECalculationMode mode)
         {
-            return _getStrongestTyphoonHandler.HandleAsync(mode);
+            return _getStrongestTyphoonHandler.Handle(mode);
         }
     }
 }

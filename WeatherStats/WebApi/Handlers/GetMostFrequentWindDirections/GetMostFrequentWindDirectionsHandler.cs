@@ -4,36 +4,13 @@ using WeatherStats.Data.Models;
 
 namespace WeatherStats.WebApi.Handlers.GetMostFrequentWindDirections
 {
-    public class GetMostFrequentWindDirectionsHandler
+    public class GetMostFrequentWindDirectionsHandler : CalculationHandlerBase<Dictionary<string, int>>
     {
-        private readonly ITyphoonDataProvider _typhoonDataProvider;
-
-        public GetMostFrequentWindDirectionsHandler(ITyphoonDataProvider typhoonDataProvider)
+        public GetMostFrequentWindDirectionsHandler(ITyphoonDataProvider typhoonDataProvider) : base(typhoonDataProvider)
         {
-            _typhoonDataProvider = typhoonDataProvider;
         }
 
-        public Task<GetMostFrequentWindDirectionsResponse> HandleAsync(ECalculationMode calculationMode)
-        {
-            var data = _typhoonDataProvider.GetTyphoonData();
-
-            var stopwatch = Stopwatch.StartNew();
-
-            var result = calculationMode == ECalculationMode.Linq
-                ? CalcWithLinq(data)
-                : CalcWithPLinq(data);
-
-            stopwatch.Stop();
-
-            return Task.FromResult(
-                new GetMostFrequentWindDirectionsResponse
-                {
-                    CalculationTime = stopwatch.ElapsedMilliseconds,
-                    Directions = result,
-                });
-        }
-
-        private Dictionary<string, int> CalcWithLinq(List<TyphoonDataItem> data)
+        protected override Dictionary<string, int> CalculateWithLinq(List<TyphoonDataItem> data, List<TyphoonInfoItem> info)
         {
             return data.Where(x => !string.IsNullOrEmpty(x.DirectionOfTheLongestRadiusOf50ktWindsOrGreater) &&
                             !x.DirectionOfTheLongestRadiusOf50ktWindsOrGreater.Contains("No direction") &&
@@ -42,7 +19,31 @@ namespace WeatherStats.WebApi.Handlers.GetMostFrequentWindDirections
                 .ToDictionary(x => x.Key, x => x.GroupBy(i => i.InternationalNumberID).Count());
         }
 
-        private Dictionary<string, int> CalcWithPLinq(List<TyphoonDataItem> data)
+        protected override Dictionary<string, int> CalculateWithParallel(List<TyphoonDataItem> data, List<TyphoonInfoItem> info)
+        {
+            var groups = new Dictionary<string, int>();
+
+            Parallel.ForEach(data, i =>
+            {
+                if (!string.IsNullOrEmpty(i.DirectionOfTheLongestRadiusOf50ktWindsOrGreater) &&
+                    !i.DirectionOfTheLongestRadiusOf50ktWindsOrGreater.Contains("No direction") &&
+                    !i.DirectionOfTheLongestRadiusOf50ktWindsOrGreater.Contains("(symmetric circle)"))
+                {
+                    if (groups.TryGetValue(i.DirectionOfTheLongestRadiusOf50ktWindsOrGreater, out var count))
+                    {
+                        groups[i.DirectionOfTheLongestRadiusOf50ktWindsOrGreater] = count + 1;
+                    }
+                    else
+                    {
+                        groups[i.DirectionOfTheLongestRadiusOf50ktWindsOrGreater] = 1;
+                    }
+                }
+            });
+
+            return groups;
+        }
+
+        protected override Dictionary<string, int> CalculateWithPLinq(List<TyphoonDataItem> data, List<TyphoonInfoItem> info)
         {
             return data.AsParallel()
                 .Where(x => !string.IsNullOrEmpty(x.DirectionOfTheLongestRadiusOf50ktWindsOrGreater) &&

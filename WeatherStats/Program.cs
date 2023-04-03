@@ -12,22 +12,7 @@ using WeatherStats.WebApi.Handlers.GetMostFrequentWindDirections;
 using WeatherStats.WebApi.Handlers.GetMostFrequestWindDirectionOfStrongestTyphoons;
 using WeatherStats.WebApi.Handlers.GetStrongestTyphoon;
 using WeatherStats.WebApi.Handlers.Login;
-
-/*
-var data = CsvFileReader.ReadFile<TyphoonDataItem>("Files/typhoon_data.csv", startRowIndex: 1);
-
-var stopWatch = Stopwatch.StartNew();
-Parallel.ForEach(data, i => i.MaximumSustainedWindSpeed = i.MaximumSustainedWindSpeed + 100);
-stopWatch.Stop();
-
-Console.WriteLine("plinq: " + stopWatch.Elapsed.TotalMilliseconds);
-
-stopWatch.Restart();
-data.ForEach(i => i.MaximumSustainedWindSpeed = i.MaximumSustainedWindSpeed + 100);
-stopWatch.Stop();
-
-Console.WriteLine("linq: " + stopWatch.Elapsed.TotalMilliseconds);
-*/
+using WeatherStats.WebApi.Handlers.RegistrateUser;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -70,6 +55,7 @@ builder.Services.AddScoped<GetMostFrequentWindDirectionsHandler>();
 builder.Services.AddScoped<GetMostFrequestWindDirectionOfStrongestTyphoonsHandler>();
 builder.Services.AddScoped<GetStrongestTyphoonHandler>();
 builder.Services.AddScoped<LoginHandler>();
+builder.Services.AddScoped<RegistrateUserHandler>();
 
 builder.Services.AddHostedService<InitUsersService>();
 builder.Services.AddCors(options => options.AddDefaultPolicy(builder => builder.WithOrigins("http://localhost:3000").AllowAnyHeader().AllowAnyMethod().AllowCredentials()));

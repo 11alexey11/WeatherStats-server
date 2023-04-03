@@ -4,5 +4,6 @@
     {
         Linq,
         PLinq,
+        Parallel
     }
 }

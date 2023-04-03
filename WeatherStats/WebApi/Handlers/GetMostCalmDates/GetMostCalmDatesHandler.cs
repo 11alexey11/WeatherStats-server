@@ -4,35 +4,13 @@ using WeatherStats.Data.Models;
 
 namespace WeatherStats.WebApi.Handlers.GetMostCalmDates
 {
-    public class GetMostCalmDatesHandler
+    public class GetMostCalmDatesHandler : CalculationHandlerBase<List<DateTime>>
     {
-        private readonly ITyphoonDataProvider _typhoonDataProvider;
-        public GetMostCalmDatesHandler(ITyphoonDataProvider typhoonDataProvider)
+        public GetMostCalmDatesHandler(ITyphoonDataProvider typhoonDataProvider) : base(typhoonDataProvider)
         {
-            _typhoonDataProvider = typhoonDataProvider;
         }
 
-        public Task<GetMostCalmDatesResponse> HandleAsync(ECalculationMode calculationMode)
-        {
-            var data = _typhoonDataProvider.GetTyphoonData();
-
-            var stopwatch = Stopwatch.StartNew();
-
-            var result = calculationMode == ECalculationMode.Linq
-                ? CalcWithLinq(data)
-                : CalcWithPLinq(data);
-
-            stopwatch.Stop();
-
-            return Task.FromResult(
-                new GetMostCalmDatesResponse
-                {
-                    CalculationTime = stopwatch.ElapsedMilliseconds,
-                    CalmDates = result
-                });
-        }
-
-        private Dictionary<DateTime, double> CalcWithLinq(List<TyphoonDataItem> data)
+        protected override List<DateTime> CalculateWithLinq(List<TyphoonDataItem> data, List<TyphoonInfoItem> info)
         {
             return data.Where(x => x.MaximumSustainedWindSpeed.HasValue)
                        .GroupBy(x => new DateTime(x.Year, x.Month, x.Day))
@@ -40,13 +18,44 @@ namespace WeatherStats.WebApi.Handlers.GetMostCalmDates
                            x => x.Key,
                            x => x.Max(i => i.MaximumSustainedWindSpeed.Value))
                        .Where(x => x.Value == 0)
-                       .ToDictionary(
-                            x => x.Key,
-                            x => x.Value);
+                       .Select(x => x.Key)
+                       .ToList();
         }
 
-        private Dictionary<DateTime, double> CalcWithPLinq(List<TyphoonDataItem> data)
+        protected override List<DateTime> CalculateWithParallel(List<TyphoonDataItem> data, List<TyphoonInfoItem> info)
         {
+            var calmDates = new HashSet<DateTime>();
+            var excepted = new HashSet<DateTime>();
+
+            Parallel.ForEach(data, i =>
+            {
+                lock (calmDates)
+                {
+                    if (i.MaximumSustainedWindSpeed.HasValue)
+                    {
+                        var date = new DateTime(i.Year, i.Month, i.Day);
+
+                        if (i.MaximumSustainedWindSpeed.Value == 0)
+                        {
+                            if (!excepted.Contains(date))
+                                calmDates.Add(date);
+                        }
+                        else
+                        {
+                            if (calmDates.Contains(date))
+                                calmDates.Remove(date);
+                            excepted.Add(date);
+                        }
+                    }
+                }
+            });
+
+            return calmDates.ToList();
+        }
+
+        protected override List<DateTime> CalculateWithPLinq(List<TyphoonDataItem> data, List<TyphoonInfoItem> info)
+        {
+
             return data.AsParallel()
                        .Where(x => x.MaximumSustainedWindSpeed.HasValue)
                        .GroupBy(x => new DateTime(x.Year, x.Month, x.Day))
@@ -55,9 +64,8 @@ namespace WeatherStats.WebApi.Handlers.GetMostCalmDates
                            x => x.Max(i => i.MaximumSustainedWindSpeed.Value))
                        .AsParallel()
                        .Where(x => x.Value == 0)
-                       .ToDictionary(
-                           x => x.Key,
-                           x => x.Value);
+                       .Select(x => x.Key)
+                       .ToList();
         }
     }
 }
